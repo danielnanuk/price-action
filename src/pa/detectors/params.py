@@ -60,3 +60,38 @@ def h2_params(tier: ParamTier) -> SetupParams:
 
 def l2_params(tier: ParamTier) -> SetupParams:
     return SetupParams(tier=tier, thresholds=dict(L2_THRESHOLDS[tier]))
+
+
+FLAG_THRESHOLDS: dict[ParamTier, dict[str, float]] = {
+    ParamTier.STRICT: {
+        "min_impulse_bars": 4,
+        "min_impulse_atr_mult": 2.0,
+        "min_consolidation_bars": 5,
+        "max_consolidation_range_ratio": 0.4,
+        "regime_strength_min": 0.6,
+        "stop_atr_buffer": 0.5,
+        "target_r_cap": 3.0,
+    },
+    ParamTier.STANDARD: {
+        "min_impulse_bars": 3,
+        "min_impulse_atr_mult": 1.5,
+        "min_consolidation_bars": 5,
+        "max_consolidation_range_ratio": 0.5,
+        "regime_strength_min": 0.4,
+        "stop_atr_buffer": 0.5,
+        "target_r_cap": 3.0,
+    },
+    ParamTier.LOOSE: {
+        "min_impulse_bars": 3,
+        "min_impulse_atr_mult": 1.0,
+        "min_consolidation_bars": 4,
+        "max_consolidation_range_ratio": 0.7,
+        "regime_strength_min": 0.2,
+        "stop_atr_buffer": 0.5,
+        "target_r_cap": 3.0,
+    },
+}
+
+
+def flag_params(tier: ParamTier) -> SetupParams:
+    return SetupParams(tier=tier, thresholds=dict(FLAG_THRESHOLDS[tier]))
