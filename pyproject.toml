@@ -26,6 +26,7 @@ dev = [
     "pandas-stubs",
     "types-pyyaml",
     "pre-commit>=3.6",
+    "Pillow>=10.0",
 ]
 
 [project.scripts]
