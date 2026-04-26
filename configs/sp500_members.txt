@@ -1,0 +1,15 @@
+# PLACEHOLDER S&P 500 members list. Sandboxed environment cannot reach
+# en.wikipedia.org (HTTP 403); see Task 22, Step 1 in the plan for the
+# canonical one-liner that regenerates this file from Wikipedia. Replace
+# this short list with the full ~500-symbol snapshot before running the
+# real backtest. Symbols use Polygon convention (BRK-B, not BRK.B).
+AAPL
+MSFT
+GOOGL
+NVDA
+META
+AMZN
+TSLA
+BRK-B
+JPM
+V
