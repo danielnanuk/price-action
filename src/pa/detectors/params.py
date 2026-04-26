@@ -127,3 +127,38 @@ FAILED_BREAKOUT_THRESHOLDS: dict[ParamTier, dict[str, float]] = {
 
 def failed_breakout_params(tier: ParamTier) -> SetupParams:
     return SetupParams(tier=tier, thresholds=dict(FAILED_BREAKOUT_THRESHOLDS[tier]))
+
+
+DOUBLE_TB_THRESHOLDS: dict[ParamTier, dict[str, float]] = {
+    ParamTier.STRICT: {
+        "lookback_bars": 30,
+        "min_pullback_bars": 5,
+        "min_pullback_atr_mult": 1.5,
+        "max_peak_diff_pct": 0.02,  # 2%
+        "min_signal_score": 0.6,
+        "stop_atr_buffer": 0.5,
+        "target_r_multiple": 2.0,
+    },
+    ParamTier.STANDARD: {
+        "lookback_bars": 30,
+        "min_pullback_bars": 5,
+        "min_pullback_atr_mult": 1.0,
+        "max_peak_diff_pct": 0.05,
+        "min_signal_score": 0.5,
+        "stop_atr_buffer": 0.5,
+        "target_r_multiple": 2.0,
+    },
+    ParamTier.LOOSE: {
+        "lookback_bars": 30,
+        "min_pullback_bars": 4,
+        "min_pullback_atr_mult": 0.8,
+        "max_peak_diff_pct": 0.08,
+        "min_signal_score": 0.3,
+        "stop_atr_buffer": 0.5,
+        "target_r_multiple": 2.0,
+    },
+}
+
+
+def double_tb_params(tier: ParamTier) -> SetupParams:
+    return SetupParams(tier=tier, thresholds=dict(DOUBLE_TB_THRESHOLDS[tier]))
