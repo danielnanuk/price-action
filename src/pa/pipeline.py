@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import pandas as pd
@@ -53,7 +54,9 @@ def stage_fetch(cfg: Config) -> None:
         raise RuntimeError(f"Missing {cfg.data.api_key_env} env var")
     client = MassiveClient(api_key=api_key, base_url=cfg.data.api_base_url)
     cache = OhlcvCache(cache_dir=cfg.data.cache_dir / "ohlcv", client=client)
-    for ticker in _read_universe(cfg):
+    failures_dir = cfg.data.cache_dir / "_failures"
+
+    def _fetch_one(ticker: str) -> None:
         try:
             cache.fetch_ohlcv(
                 ticker,
@@ -63,10 +66,17 @@ def stage_fetch(cfg: Config) -> None:
                 multiplier=cfg.data.timespan_multiplier,
             )
         except Exception as exc:  # log and continue
-            (cfg.data.cache_dir / "_failures").mkdir(parents=True, exist_ok=True)
-            (cfg.data.cache_dir / "_failures" / "fetch.jsonl").open("a").write(
+            failures_dir.mkdir(parents=True, exist_ok=True)
+            (failures_dir / "fetch.jsonl").open("a").write(
                 f'{{"ticker":"{ticker}","reason":"{exc}"}}\n'
             )
+
+    # httpx.Client is thread-safe; pagination per ticker is sequential within each
+    # worker, but multiple tickers fetch concurrently. 8 workers stays well below
+    # typical Polygon-tier rate limits while saturating I/O wait.
+    tickers = _read_universe(cfg)
+    with ThreadPoolExecutor(max_workers=8) as ex:
+        list(ex.map(_fetch_one, tickers))
     client.close()
 
 
