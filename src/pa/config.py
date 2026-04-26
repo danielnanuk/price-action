@@ -32,6 +32,8 @@ class DataConfig(BaseModel):
     api_base_url: str
     api_key_env: str
     rate_limit_per_min: int = Field(gt=0)
+    timespan: str = "day"
+    timespan_multiplier: int = Field(default=1, gt=0)
 
 
 class DetectorsConfig(BaseModel):

@@ -19,18 +19,28 @@ class OhlcvCache:
         self._dir.mkdir(parents=True, exist_ok=True)
         self._client = client
 
-    def _key(self, ticker: str, start: date, end: date) -> Path:
-        h = hashlib.sha256(f"{ticker}|{start.isoformat()}|{end.isoformat()}".encode()).hexdigest()[
-            :12
-        ]
+    def _key(self, ticker: str, start: date, end: date, timespan: str, multiplier: int) -> Path:
+        h = hashlib.sha256(
+            f"{ticker}|{start.isoformat()}|{end.isoformat()}|{multiplier}{timespan}".encode()
+        ).hexdigest()[:12]
         return self._dir / f"{ticker}_{h}.parquet"
 
-    def fetch_ohlcv(self, ticker: str, start: date, end: date) -> pd.DataFrame:
-        path = self._key(ticker, start, end)
+    def fetch_ohlcv(
+        self,
+        ticker: str,
+        start: date,
+        end: date,
+        *,
+        timespan: str = "day",
+        multiplier: int = 1,
+    ) -> pd.DataFrame:
+        path = self._key(ticker, start, end, timespan, multiplier)
         if path.exists():
             return pd.read_parquet(path)
 
-        bars = self._client.fetch_aggregates(ticker=ticker, start=start, end=end)
+        bars = self._client.fetch_aggregates(
+            ticker=ticker, start=start, end=end, timespan=timespan, multiplier=multiplier
+        )
         if not bars:
             df = pd.DataFrame(columns=OHLCV_COLS)
         else:

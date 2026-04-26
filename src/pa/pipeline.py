@@ -55,7 +55,13 @@ def stage_fetch(cfg: Config) -> None:
     cache = OhlcvCache(cache_dir=cfg.data.cache_dir / "ohlcv", client=client)
     for ticker in _read_universe(cfg):
         try:
-            cache.fetch_ohlcv(ticker, cfg.date_range.start, cfg.date_range.end)
+            cache.fetch_ohlcv(
+                ticker,
+                cfg.date_range.start,
+                cfg.date_range.end,
+                timespan=cfg.data.timespan,
+                multiplier=cfg.data.timespan_multiplier,
+            )
         except Exception as exc:  # log and continue
             (cfg.data.cache_dir / "_failures").mkdir(parents=True, exist_ok=True)
             (cfg.data.cache_dir / "_failures" / "fetch.jsonl").open("a").write(

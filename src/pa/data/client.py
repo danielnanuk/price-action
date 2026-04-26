@@ -20,7 +20,7 @@ class MassiveAPIError(Exception):
 
 @dataclass(frozen=True, slots=True)
 class Bar:
-    date: date
+    date: datetime  # Full timestamp (UTC). Daily bars use 00:00 UTC; intraday carries time.
     open: float
     high: float
     low: float
@@ -55,6 +55,7 @@ class MassiveClient:
         start: date,
         end: date,
         timespan: str = "day",
+        multiplier: int = 1,
         adjusted: bool = True,
     ) -> list[Bar]:
         @retry(
@@ -65,7 +66,7 @@ class MassiveClient:
         )
         def _do() -> list[Bar]:
             url = (
-                f"{self._base_url}/v2/aggs/ticker/{ticker}/range/1/{timespan}/"
+                f"{self._base_url}/v2/aggs/ticker/{ticker}/range/{multiplier}/{timespan}/"
                 f"{start.isoformat()}/{end.isoformat()}"
             )
             params: dict[str, str | int] = {
@@ -90,9 +91,9 @@ class MassiveClient:
 
 def _bar_from_dict(d: dict[str, float | int]) -> Bar:
     ts_ms = int(d["t"])
-    bar_date = datetime.fromtimestamp(ts_ms / 1000, tz=UTC).date()
+    bar_ts = datetime.fromtimestamp(ts_ms / 1000, tz=UTC)
     return Bar(
-        date=bar_date,
+        date=bar_ts,
         open=float(d["o"]),
         high=float(d["h"]),
         low=float(d["l"]),

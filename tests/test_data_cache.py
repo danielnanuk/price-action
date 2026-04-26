@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -13,8 +13,8 @@ from pa.data.client import Bar
 
 def _fake_bars() -> list[Bar]:
     return [
-        Bar(date(2021, 4, 26), 100.0, 101.0, 99.0, 100.5, 1000, 100.2),
-        Bar(date(2021, 4, 27), 100.5, 102.0, 100.0, 101.5, 1100, 101.0),
+        Bar(datetime(2021, 4, 26), 100.0, 101.0, 99.0, 100.5, 1000, 100.2),
+        Bar(datetime(2021, 4, 27), 100.5, 102.0, 100.0, 101.5, 1100, 101.0),
     ]
 
 

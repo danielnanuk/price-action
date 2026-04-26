@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import UTC, date, datetime
 
 import httpx
 import pytest
@@ -51,7 +51,7 @@ def test_fetch_aggregates_returns_bars() -> None:
     )
     assert len(bars) == 2
     assert bars[0].open == 134.83
-    assert bars[0].date == date(2021, 4, 26)
+    assert bars[0].date == datetime(2021, 4, 26, tzinfo=UTC)
 
 
 def test_fetch_aggregates_raises_on_5xx() -> None:

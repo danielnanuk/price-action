@@ -2,13 +2,15 @@ universe:
   name: sp500
   members_file: configs/sp500_members.txt  # populated in Task 4
 date_range:
-  start: "2021-04-26"
+  start: "2024-04-26"  # 2y for first hourly run (intraday data is 7x bars/year vs daily)
   end: "2026-04-26"
 data:
   cache_dir: data
   api_base_url: "https://api.massive.com"
   api_key_env: POLYGON_API_KEY
   rate_limit_per_min: 100
+  timespan: hour
+  timespan_multiplier: 1
 detectors:
   enabled: [h2, l2, flag, failed_breakout, double_top_bottom]
   param_tiers: [strict, standard, loose]
