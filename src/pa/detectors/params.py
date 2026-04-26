@@ -95,3 +95,35 @@ FLAG_THRESHOLDS: dict[ParamTier, dict[str, float]] = {
 
 def flag_params(tier: ParamTier) -> SetupParams:
     return SetupParams(tier=tier, thresholds=dict(FLAG_THRESHOLDS[tier]))
+
+
+FAILED_BREAKOUT_THRESHOLDS: dict[ParamTier, dict[str, float]] = {
+    ParamTier.STRICT: {
+        "range_lookback_bars": 20,
+        "min_range_atr_mult": 1.0,  # range must be at least 1 ATR wide
+        "max_failure_bars": 2,
+        "regime_strength_min": 0.4,
+        "stop_atr_buffer": 0.5,
+        "target_r_multiple": 2.0,
+    },
+    ParamTier.STANDARD: {
+        "range_lookback_bars": 20,
+        "min_range_atr_mult": 0.8,
+        "max_failure_bars": 3,
+        "regime_strength_min": 0.3,
+        "stop_atr_buffer": 0.5,
+        "target_r_multiple": 2.0,
+    },
+    ParamTier.LOOSE: {
+        "range_lookback_bars": 20,
+        "min_range_atr_mult": 0.6,
+        "max_failure_bars": 5,
+        "regime_strength_min": 0.1,
+        "stop_atr_buffer": 0.5,
+        "target_r_multiple": 2.0,
+    },
+}
+
+
+def failed_breakout_params(tier: ParamTier) -> SetupParams:
+    return SetupParams(tier=tier, thresholds=dict(FAILED_BREAKOUT_THRESHOLDS[tier]))
