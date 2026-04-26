@@ -2,4 +2,4 @@
 
 from pa.detectors.base import CANDIDATE_COLS, BarsFrame, SetupParams
 
-__all__ = ["BarsFrame", "CANDIDATE_COLS", "SetupParams"]
+__all__ = ["CANDIDATE_COLS", "BarsFrame", "SetupParams"]
