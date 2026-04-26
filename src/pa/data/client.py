@@ -1,0 +1,102 @@
+"""HTTP client for Massive API (Polygon-compatible aggregates endpoint)."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from datetime import UTC, date, datetime
+
+import httpx
+from tenacity import (
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
+
+
+class MassiveAPIError(Exception):
+    """Raised when the Massive API returns an unrecoverable error."""
+
+
+@dataclass(frozen=True, slots=True)
+class Bar:
+    date: date
+    open: float
+    high: float
+    low: float
+    close: float
+    volume: int
+    vwap: float
+
+
+class MassiveClient:
+    def __init__(
+        self,
+        *,
+        api_key: str,
+        base_url: str,
+        transport: httpx.BaseTransport | None = None,
+        max_retries: int = 3,
+        timeout_s: float = 30.0,
+    ) -> None:
+        self._api_key = api_key
+        self._base_url = base_url.rstrip("/")
+        self._max_retries = max_retries
+        self._client = httpx.Client(
+            transport=transport,
+            timeout=timeout_s,
+            headers={"Authorization": f"Bearer {api_key}"},
+        )
+
+    def fetch_aggregates(
+        self,
+        *,
+        ticker: str,
+        start: date,
+        end: date,
+        timespan: str = "day",
+        adjusted: bool = True,
+    ) -> list[Bar]:
+        @retry(
+            stop=stop_after_attempt(self._max_retries),
+            wait=wait_exponential(multiplier=1, min=1, max=30),
+            retry=retry_if_exception_type((httpx.HTTPError, MassiveAPIError)),
+            reraise=True,
+        )
+        def _do() -> list[Bar]:
+            url = (
+                f"{self._base_url}/v2/aggs/ticker/{ticker}/range/1/{timespan}/"
+                f"{start.isoformat()}/{end.isoformat()}"
+            )
+            params: dict[str, str | int] = {
+                "adjusted": str(adjusted).lower(),
+                "sort": "asc",
+                "limit": 50000,
+            }
+            resp = self._client.get(url, params=params)
+            if resp.status_code >= 500:
+                raise MassiveAPIError(f"Server {resp.status_code}: {resp.text[:200]}")
+            if resp.status_code == 429:
+                raise MassiveAPIError("Rate limited")
+            resp.raise_for_status()
+            payload = resp.json()
+            return [_bar_from_dict(b) for b in payload.get("results", [])]
+
+        return _do()
+
+    def close(self) -> None:
+        self._client.close()
+
+
+def _bar_from_dict(d: dict[str, float | int]) -> Bar:
+    ts_ms = int(d["t"])
+    bar_date = datetime.fromtimestamp(ts_ms / 1000, tz=UTC).date()
+    return Bar(
+        date=bar_date,
+        open=float(d["o"]),
+        high=float(d["h"]),
+        low=float(d["l"]),
+        close=float(d["c"]),
+        volume=int(d["v"]),
+        vwap=float(d["vw"]),
+    )
