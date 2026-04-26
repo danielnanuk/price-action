@@ -1,0 +1,20 @@
+universe:
+  name: sp500
+  members_file: configs/sp500_members.txt  # populated in Task 4
+date_range:
+  start: "2021-04-26"
+  end: "2026-04-26"
+data:
+  cache_dir: data
+  api_base_url: "https://api.massive.com"
+  api_key_env: POLYGON_API_KEY
+  rate_limit_per_min: 100
+detectors:
+  enabled: [h2, l2, flag, failed_breakout, double_top_bottom]
+  param_tiers: [strict, standard, loose]
+backtest:
+  time_stop_bars: 20
+  same_bar_priority: stop_first
+report:
+  output_dir: reports
+  samples_per_setup: 50  # cap on annotated chart rendering
