@@ -19,6 +19,7 @@ Baseline state going in: portfolio (4 setups × STANDARD, 6420 trades) totalled
 | D | SPY > 200d MA gates H2 toward winning regimes | ❌ Filter drops the best H2 trades | No |
 | H | rank candidates, cap concurrent positions | ❌ Any ranker hurts; edge is in volume | No |
 | J | Daily H2 + 1H trigger entry (tight hourly stop) | ❌ 1H stop is structurally too tight | No |
+| F | Rewrite Double T/B detector with stricter rules | ⚠️ Structurally clean, but PF ~= 1.00 | Code yes, default no |
 
 ## A — Promote scale-half + chandelier-trail to engine
 
@@ -228,6 +229,45 @@ Three contributing factors:
 **Rejected for the current iteration.** A real multi-TF implementation
 should compose two detector passes (daily + hourly) and require both to
 fire — that's a Step J' candidate, deferred.
+
+## F — Double T/B detector v2 (code promoted, default still disabled)
+
+v1 over-fired on real data:
+  - 31k STANDARD daily candidates, 196k STANDARD hourly
+  - Win rate 6-12% across tiers
+  - PF 0.83-0.95 — net portfolio drag
+
+Five tightening changes in v2 (commit `27f11ab`):
+  - Lookback 30 → 60 bars (P1 must be multi-month significant high)
+  - Pullback depth 1× → 2× ATR (real correction)
+  - Pullback duration ≥ 5 → ≥ 8 bars
+  - P2 placement diff 5% → 1.5%
+  - Mature regime gate `regime_strength >= 0.5` + bull-regime required for
+    double top, bear-regime required for double bottom
+  - Signal bar must close BELOW P2 (true rejection, not just any bear bar)
+
+Results on the same daily 5y × S&P 500 dataset, exit = baseline:
+
+```
+tier      v1 N      v1 PF    v2 N    v2 Win%   v2 PF    v2 Total R
+strict    10440     0.95     513     40%       1.00      -1.1
+standard  31284     0.90    2145     39%       0.98     -20.1
+loose     66171     0.85    7021     41%       1.00     +10.3
+```
+
+Detector now produces ~95% fewer candidates, win rate quadruples, and PF
+bracket break-even — but Total R per tier is approximately zero. **True
+double tops are too rare and too symmetric in a 5-year mostly-bull
+window to systematically generate edge.**
+
+Action taken:
+- v2 detector + tighter params committed to production (so future
+  iterations build on the correct algorithm).
+- `default.yaml` keeps `double_top_bottom` disabled — re-enabling adds
+  ~0 R to portfolio while doubling computation, no benefit.
+- Re-evaluate once we have (a) longer history (Massive tier upgrade) so
+  multiple bear cycles enter the dataset, or (b) layered hourly
+  confirmation (Step J' if pursued).
 
 ## What's left
 
