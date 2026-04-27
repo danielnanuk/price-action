@@ -1,6 +1,11 @@
-# Data artifacts (regenerable, large)
-/data/
-/reports/
+# Data artifacts (regenerable, large) — match /data, /data_h, /reports, /reports_h, etc.
+/data*/
+/reports*/
+
+# Coverage + scratch research workspace
+.coverage
+.coverage.*
+/scratch/
 
 # Python
 __pycache__/
