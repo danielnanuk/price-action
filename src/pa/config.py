@@ -49,6 +49,11 @@ class BacktestConfig(BaseModel):
     use_fixed_target: bool = True
     scale_at_1r: bool = False
     trailing_atr_mult: float = Field(default=0.0, ge=0.0)
+    # Per-setup overrides: maps setup name (e.g. "h2") to a partial dict of
+    # the fields above. Walk-forward research showed scale_trail benefits
+    # Failed Breakout + Flag heavily but hurts H2 / L2; per-setup choice
+    # captures that without forcing a portfolio-wide compromise.
+    setup_overrides: dict[str, dict[str, bool | int | float | str]] = Field(default_factory=dict)
 
 
 class ReportConfig(BaseModel):

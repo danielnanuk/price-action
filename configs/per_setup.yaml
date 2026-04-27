@@ -1,0 +1,39 @@
+universe:
+  name: sp500
+  members_file: configs/sp500_members.txt
+date_range:
+  start: "2021-04-26"
+  end: "2026-04-26"
+data:
+  cache_dir: data
+  api_base_url: "https://api.massive.com"
+  api_key_env: POLYGON_API_KEY
+  rate_limit_per_min: 100
+  timespan: day
+  timespan_multiplier: 1
+detectors:
+  enabled: [h2, l2, flag, failed_breakout]
+  param_tiers: [strict, standard, loose]
+backtest:
+  # Default strategy = baseline (used by H2 and L2 — walk-forward showed they
+  # regress under trailing in OOS). Overrides apply scale_trail to Flag and
+  # Failed Breakout where walk-forward confirmed structural lift in OOS.
+  use_fixed_target: true
+  scale_at_1r: false
+  trailing_atr_mult: 0.0
+  time_stop_bars: 20
+  same_bar_priority: stop_first
+  setup_overrides:
+    flag:
+      use_fixed_target: false
+      scale_at_1r: true
+      trailing_atr_mult: 3.0
+      time_stop_bars: 60
+    failed_breakout:
+      use_fixed_target: false
+      scale_at_1r: true
+      trailing_atr_mult: 3.0
+      time_stop_bars: 60
+report:
+  output_dir: reports
+  samples_per_setup: 50

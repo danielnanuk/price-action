@@ -10,7 +10,7 @@ from pathlib import Path
 import pandas as pd
 
 from pa.backtest import ExitStrategy, simulate
-from pa.config import Config
+from pa.config import BacktestConfig, Config
 from pa.data.cache import OhlcvCache
 from pa.data.client import MassiveClient
 from pa.detectors.double_top_bottom import detect_double_top_bottom
@@ -135,6 +135,19 @@ def stage_detect(cfg: Config) -> None:
             combined.to_parquet(dst / f"{setup}_{tier_str}.parquet", index=False)
 
 
+def _strategy_for(setup: str, bcfg: BacktestConfig) -> ExitStrategy:
+    """Build the ExitStrategy for one setup, applying any per-setup override."""
+    base: dict[str, bool | int | float | str] = {
+        "use_fixed_target": bcfg.use_fixed_target,
+        "scale_at_1r": bcfg.scale_at_1r,
+        "trailing_atr_mult": bcfg.trailing_atr_mult,
+        "time_stop_bars": bcfg.time_stop_bars,
+        "same_bar_priority": bcfg.same_bar_priority,
+    }
+    base.update(bcfg.setup_overrides.get(setup, {}))
+    return ExitStrategy(**base)  # type: ignore[arg-type]
+
+
 def stage_backtest(cfg: Config) -> None:
     cand_dir = cfg.data.cache_dir / "candidates"
     ohlcv_dir = cfg.data.cache_dir / "ohlcv"
@@ -142,16 +155,12 @@ def stage_backtest(cfg: Config) -> None:
     dst = cfg.data.cache_dir / "trades"
     dst.mkdir(parents=True, exist_ok=True)
 
-    strategy = ExitStrategy(
-        use_fixed_target=cfg.backtest.use_fixed_target,
-        scale_at_1r=cfg.backtest.scale_at_1r,
-        trailing_atr_mult=cfg.backtest.trailing_atr_mult,
-        time_stop_bars=cfg.backtest.time_stop_bars,
-        same_bar_priority=cfg.backtest.same_bar_priority,
+    # Atr14 must be merged in if any strategy (default or per-setup override) trails.
+    needs_atr = cfg.backtest.trailing_atr_mult > 0 or any(
+        float(ov.get("trailing_atr_mult", 0) or 0) > 0
+        for ov in cfg.backtest.setup_overrides.values()
     )
-    needs_atr = strategy.trailing_atr_mult > 0
 
-    # Build per-ticker bars: OHLCV merged with atr14 if trailing strategies need it.
     bars_by_ticker: dict[str, pd.DataFrame] = {}
     for f in ohlcv_dir.glob("*.parquet"):
         cache_ticker = f.name.split("_")[0]
@@ -167,6 +176,9 @@ def stage_backtest(cfg: Config) -> None:
         bars_by_ticker[cache_ticker] = ohlcv
 
     for cand_file in sorted(cand_dir.glob("*.parquet")):
+        setup, _, _tier = cand_file.stem.rpartition("_")
+        strategy = _strategy_for(setup, cfg.backtest)
+
         cands = pd.read_parquet(cand_file)
         if cands.empty:
             cands.to_parquet(dst / cand_file.name, index=False)
