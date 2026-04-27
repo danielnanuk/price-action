@@ -26,6 +26,7 @@ Baseline state going in: portfolio (4 setups × STANDARD, 6420 trades) totalled
 | OB | Add Outside Bar reversal detector (long-only) | ✅ +47.6R OOS / +121.9R IS @ STANDARD (best new setup) | Yes (default + per_setup) |
 | ii | Add ii (inside-inside) continuation breakout detector | ❌ Almost every tier × side × split has PF < 1.0 | No |
 | FF | Add Final Flag failed-breakout reversal detector | ❌ Strict/standard sample too small; loose OOS PF 0.56 | No |
+| TCL | Add Trend Channel Line overshoot detector (long-only) | ✅ +31R OOS / +69R IS @ STANDARD | Yes (default + per_setup) |
 
 ## A — Promote scale-half + chandelier-trail to engine
 
@@ -532,6 +533,47 @@ rejected: setups that depend on qualitative context (vs single
 extreme-moment events) cannot be mechanized within the current
 single-feature detector framework.
 
+## TCL — Trend Channel Line overshoot reversal (long-only, ADOPTED)
+
+Surprise contributor. Original prediction (after ii and FF rejected) was
+that TCL would fail similarly — too algorithmically complex for clean
+mechanical detection. Walk-forward proved otherwise: TCL is actually an
+extreme-event detector at projected support, validating both IS and OOS.
+
+Algorithm:
+  - Connect the last two swing lows in the lookback window with a
+    straight line, project forward to the current bar
+  - Signal: low[i] dips below the line by min_overshoot_pct, close[i]
+    closes back above it on a bull bar (full rejection of the overshoot)
+  - Long-only (bottom TCL in bear regime); top TCL deferred
+
+Walk-forward on daily 5y × S&P 500, scale_trail exit:
+
+```
+tier      IS  N=    PF      OOS  N=    PF      verdict
+strict    300       1.42    96         1.04    ✓ marginal
+standard  984       1.14    356        1.18    ✓ both > 1.0
+loose     2148      1.04    809        1.18    ✓ OOS lift
+```
+
+Standard OOS +31R falls between Climactic (+13R) and Outside Bar (+48R).
+Loose OOS +72R is the second-largest single-tier OOS contribution
+behind OB loose (+117R).
+
+Why this works (and ii / FF didn't): TCL detection identifies a specific
+extreme-bar event — price went BEYOND the projected trend line then
+rejected. That's an unambiguous "extreme moment" pattern, same family as
+Wedge / Climactic / OB. ii ("two consecutive inside bars") and FF
+("flag failed within N bars") rely on context the geometry doesn't
+capture.
+
+Per-setup mapping: `tcl -> scale_trail`.
+
+Portfolio impact at STANDARD tier (8 setups including TCL):
+  Full 5y total: +584.6R (vs +485 without TCL, +100R lift)
+  IS:  +352.1R (was +282.9, +69.2 lift)
+  OOS: +232.5R (was +201.3, +31.2 lift)
+
 ## Aggregate impact landed in this iteration
 
 ```
@@ -543,10 +585,25 @@ Portfolio OOS (STANDARD tier, range 2025-01-01 → 2026-04-24):
   + Step D'      1811      +127.8          +131.8
   + Step W       2059      +141.2          +145.2
   + Step Cl      2205      +153.7          +157.7
-  + Step OB      2424      +201.3          +205.3   <- final
+  + Step OB      2424      +201.3          +205.3
+  + Step TCL     2780      +232.5          +236.5   <- final
 
-Full 5y Total R (7 setups STANDARD, 8464 trades): +485 R
-                                                  (avg +0.057 R/trade)
+Full 5y Total R (8 setups STANDARD, 9804 trades): +584.6 R
+                                                  (avg +0.060 R/trade)
 ```
 
 Final config: `pa-backtest all --config configs/per_setup.yaml`.
+
+## Per-setup STANDARD contribution (full 5y)
+
+| #  | Setup           | N     | Total R | PF   |
+|----|-----------------|-------|---------|------|
+| 1  | failed_breakout | 5150  | +182.6  | 1.07 |
+| 2  | outside_bar     | 748   | +169.5  | 1.62 |
+| 3  | tcl             | 1340  | +100.4  | 1.15 |
+| 4  | wedge           | 966   | +99.6   | 1.24 |
+| 5  | climactic       | 330   | +34.8   | 1.25 |
+| 6  | h2              | 223   | +7.4    | 1.06 |
+| 7  | flag            | 871   | +4.6    | 1.01 |
+| 8  | l2              | 176   | -14.2   | 0.87 |
+|    | **Total**       | 9804  | +584.6  | -    |
