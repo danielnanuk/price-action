@@ -24,6 +24,7 @@ Baseline state going in: portfolio (4 setups × STANDARD, 6420 trades) totalled
 | W | Add Wedge / 3-push reversal detector (long-only) | ✅ +13.4R OOS / +86.2R IS @ STANDARD | Yes (default + per_setup) |
 | Cl | Add Climactic reversal detector (long-only) | ✅ +12.5R OOS / +22.2R IS @ STANDARD | Yes (default + per_setup) |
 | OB | Add Outside Bar reversal detector (long-only) | ✅ +47.6R OOS / +121.9R IS @ STANDARD (best new setup) | Yes (default + per_setup) |
+| ii | Add ii (inside-inside) continuation breakout detector | ❌ Almost every tier × side × split has PF < 1.0 | No |
 
 ## A — Promote scale-half + chandelier-trail to engine
 
@@ -458,6 +459,39 @@ Portfolio impact at STANDARD tier (7 setups including OB):
   Full 5y: +485R (vs +315 without OB, +170 lift)
   IS:  +282.9R (was +161, +121.9 lift)
   OOS: +201.3R (was +153.7, +47.6 lift)
+
+## ii — Inside-inside continuation breakout (rejected)
+
+Brooks's ii pattern: two consecutive inside bars at the end of a
+pullback, breakout direction = trade direction. Hypothesis: tight ii
+in mature trend = high-quality continuation entry.
+
+Walk-forward on daily 5y × S&P 500, both directions × both strategies:
+
+```
+tier      side    split  strategy        PF      Total R
+strict    long    OOS    baseline        0.67     -1.0
+strict    short   OOS    baseline        2.54     +3.1   (N=5, no signal)
+standard  long    OOS    scale_trail     1.03     +1.1   (essentially zero)
+standard  short   OOS    baseline        0.83     -5.9
+loose     long    OOS    scale_trail     0.64    -62.7
+loose     short   OOS    baseline        0.57    -69.9
+```
+
+Every meaningful cell has PF < 1.0. The few cells with PF > 1 have N <= 5.
+
+Mechanism: pure-geometry ii detection treats every "two consecutive
+inside bars" as a valid signal. Brooks's qualitative "tight ii is high
+quality" relies on context (pullback position, signal-bar character,
+how this ii fits into the setup) that isn't captured by geometry alone.
+Mechanical detection produces ~50/50 breakout-direction signals, which
+under our 1R-stop / 2R-target structure means PF ~0.5-0.7 (need 33%+ win
+rate to be break-even, ii hits ~25%).
+
+**Rejected.** Same lesson as D/H/J/J': single-geometry detection without
+context filters can't extract Brooks's qualitative edge. The remaining
+candidates (Final flag, TCL overshoot) likely face the same ceiling
+unless we add stronger context filters or learned ranking.
 
 ## Aggregate impact landed in this iteration
 
