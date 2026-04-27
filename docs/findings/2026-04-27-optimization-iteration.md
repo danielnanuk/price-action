@@ -23,6 +23,7 @@ Baseline state going in: portfolio (4 setups × STANDARD, 6420 trades) totalled
 | J' | True nested multi-TF (daily H2 ∩ hourly H2) | ❌ Setups are disjoint events on the two TFs | No |
 | W | Add Wedge / 3-push reversal detector (long-only) | ✅ +13.4R OOS / +86.2R IS @ STANDARD | Yes (default + per_setup) |
 | Cl | Add Climactic reversal detector (long-only) | ✅ +12.5R OOS / +22.2R IS @ STANDARD | Yes (default + per_setup) |
+| OB | Add Outside Bar reversal detector (long-only) | ✅ +47.6R OOS / +121.9R IS @ STANDARD (best new setup) | Yes (default + per_setup) |
 
 ## A — Promote scale-half + chandelier-trail to engine
 
@@ -425,6 +426,39 @@ baseline         -4.0      1811      0
 + Step Cl       +153.7     2205      +157.7  <- current
 ```
 
+## OB — Outside Bar reversal detector (long-only, ADOPTED, strongest new setup)
+
+Bull outside bar at bottom — the single decisive bar that engulfs the
+prior bar, prints a new local low intraday, and closes near its high.
+Brooks's most-cited V-reversal pattern; cleanly mechanical and produced
+the strongest walk-forward result of any new setup added in this
+iteration.
+
+Walk-forward on daily 5y × S&P 500, scale_trail exit:
+
+```
+tier      IS  N=    PF      OOS  N=    PF      verdict
+strict    239       2.47    94         1.75    ✓
+standard  529       1.61    219        1.65    ✓ +48R OOS
+loose     958       1.38    405        1.83    ✓ +117R OOS
+```
+
+Every tier × split positive with PF > 1.30. Standard OOS +47.6R is ~4x
+what Wedge or Climactic add at the same tier; it is the largest single
+contribution from a new setup in this iteration.
+
+Top outside bar (bear engulfing at high) deferred — same regime mismatch
+as Bear Flag / Top Wedge / Top Climactic in 2025-2026 mostly-bull window.
+
+Per-setup mapping: `outside_bar -> scale_trail`. V-recoveries from bull
+OBs tend to run much further than 2R, so trailing the runner captures
+the upside.
+
+Portfolio impact at STANDARD tier (7 setups including OB):
+  Full 5y: +485R (vs +315 without OB, +170 lift)
+  IS:  +282.9R (was +161, +121.9 lift)
+  OOS: +201.3R (was +153.7, +47.6 lift)
+
 ## Aggregate impact landed in this iteration
 
 ```
@@ -435,10 +469,11 @@ Portfolio OOS (STANDARD tier, range 2025-01-01 → 2026-04-24):
   + Step A       1811      +117.2          +121.2
   + Step D'      1811      +127.8          +131.8
   + Step W       2059      +141.2          +145.2
-  + Step Cl      2205      +153.7          +157.7  <- final
+  + Step Cl      2205      +153.7          +157.7
+  + Step OB      2424      +201.3          +205.3   <- final
 
-Full 5y Total R (6 setups STANDARD, 7716 trades): +315 R
-                                                  (avg +0.041 R/trade)
+Full 5y Total R (7 setups STANDARD, 8464 trades): +485 R
+                                                  (avg +0.057 R/trade)
 ```
 
 Final config: `pa-backtest all --config configs/per_setup.yaml`.
