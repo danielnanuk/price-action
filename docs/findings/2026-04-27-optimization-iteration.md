@@ -20,6 +20,7 @@ Baseline state going in: portfolio (4 setups × STANDARD, 6420 trades) totalled
 | H | rank candidates, cap concurrent positions | ❌ Any ranker hurts; edge is in volume | No |
 | J | Daily H2 + 1H trigger entry (tight hourly stop) | ❌ 1H stop is structurally too tight | No |
 | F | Rewrite Double T/B detector with stricter rules | ⚠️ Structurally clean, but PF ~= 1.00 | Code yes, default no |
+| J' | True nested multi-TF (daily H2 ∩ hourly H2) | ❌ Setups are disjoint events on the two TFs | No |
 
 ## A — Promote scale-half + chandelier-trail to engine
 
@@ -268,6 +269,48 @@ Action taken:
 - Re-evaluate once we have (a) longer history (Massive tier upgrade) so
   multiple bear cycles enter the dataset, or (b) layered hourly
   confirmation (Step J' if pursued).
+
+## J' — Nested multi-TF (daily H2 ∩ hourly H2) is structurally non-existent
+
+After Step J's "1H trigger" version failed, the deeper hypothesis was that
+*Brooks-style* multi-TF means **the same setup type firing on both
+timeframes within a tight window** — daily H2 setup, then hourly H2 fires
+within day D-D+2 to confirm and provide entry timing.
+
+Empirical check on real cached candidates (no detector re-run needed):
+
+  - Daily H2 STANDARD: 223 over 5y
+  - Hourly H2 STANDARD: 554 over 2y
+  - Of 104 daily candidates inside the hourly cache window, only 40 (38%)
+    have any hourly H2 *ever* on that ticker. The other 64 (62%) have
+    none — the ticker simply never produced an hourly H2 in 2 years.
+  - Of those 40, the median wait until the *next* hourly H2 is **163.9 days**
+    (p10 = 26 days, min = 2.7 days). Inside any plausible signal window:
+
+    ```
+    within 21h:  0 / 40
+    within 4d:   1 / 40 (2%)
+    within 21d:  4 / 40 (10%)
+    within 42d:  5 / 40 (12%)
+    ```
+
+The two timeframes' H2 setups are essentially disjoint events. They
+identify **different structures** (weeks-scale pullback vs hours-scale
+pullback) over **different regime measurements** (daily EMA stack vs
+hourly EMA stack). A stock can be in daily bull-trend while hourly is
+transitional/range, allowing daily H2 to fire while hourly H2 never
+appears nearby.
+
+**Rejected.** Brooks's "multi-TF" guidance does not mean nested same-setup
+confirmation; it means using the higher TF for *context* (already tried as
+SPY-EMA200 in Step D and rejected) or watching price action on the
+lower TF for *timing* (Step J's variant, also rejected). Both flavors
+have been tested on this dataset; neither helps.
+
+The remaining genuine multi-TF angle would be **cross-setup confirmation**
+(e.g. daily H2 + hourly Failed Breakout, or daily Flag + hourly H2 inside
+the consolidation). That's a much larger combinatorial search, deferred
+unless follow-up data requires it.
 
 ## What's left
 
