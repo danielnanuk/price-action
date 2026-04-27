@@ -130,30 +130,36 @@ def failed_breakout_params(tier: ParamTier) -> SetupParams:
 
 
 DOUBLE_TB_THRESHOLDS: dict[ParamTier, dict[str, float]] = {
+    # v2 thresholds (see double_top_bottom.py docstring for rationale).
+    # Loose >= standard >= strict for monotonicity, just inverted for "lookback"
+    # since longer lookback = stricter requirement.
     ParamTier.STRICT: {
-        "lookback_bars": 30,
-        "min_pullback_bars": 5,
-        "min_pullback_atr_mult": 1.5,
-        "max_peak_diff_pct": 0.02,  # 2%
-        "min_signal_score": 0.6,
+        "lookback_bars": 80,
+        "min_pullback_bars": 10,
+        "min_pullback_atr_mult": 2.5,
+        "max_peak_diff_pct": 0.01,
+        "min_signal_score": 0.7,
+        "regime_strength_min": 0.7,
         "stop_atr_buffer": 0.5,
         "target_r_multiple": 2.0,
     },
     ParamTier.STANDARD: {
-        "lookback_bars": 30,
-        "min_pullback_bars": 5,
-        "min_pullback_atr_mult": 1.0,
-        "max_peak_diff_pct": 0.05,
-        "min_signal_score": 0.5,
+        "lookback_bars": 60,
+        "min_pullback_bars": 8,
+        "min_pullback_atr_mult": 2.0,
+        "max_peak_diff_pct": 0.015,
+        "min_signal_score": 0.6,
+        "regime_strength_min": 0.5,
         "stop_atr_buffer": 0.5,
         "target_r_multiple": 2.0,
     },
     ParamTier.LOOSE: {
-        "lookback_bars": 30,
-        "min_pullback_bars": 4,
-        "min_pullback_atr_mult": 0.8,
-        "max_peak_diff_pct": 0.08,
-        "min_signal_score": 0.3,
+        "lookback_bars": 40,
+        "min_pullback_bars": 6,
+        "min_pullback_atr_mult": 1.5,
+        "max_peak_diff_pct": 0.025,
+        "min_signal_score": 0.5,
+        "regime_strength_min": 0.3,
         "stop_atr_buffer": 0.5,
         "target_r_multiple": 2.0,
     },
