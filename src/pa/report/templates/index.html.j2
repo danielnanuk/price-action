@@ -1,0 +1,43 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Price Action Backtest — {{ run_id }}</title>
+<style>
+body{font-family:system-ui;margin:2em;max-width:1100px}
+table{border-collapse:collapse;width:100%}
+th,td{border:1px solid #ccc;padding:6px 10px;text-align:right}
+th:first-child,td:first-child{text-align:left}
+h2{margin-top:2em}
+.win{color:#067d2f}.loss{color:#a30000}
+</style></head><body>
+<h1>Price Action Backtest</h1>
+<p><b>Run:</b> {{ run_id }} &middot; <b>Date:</b> {{ run_date }} &middot;
+   <b>Universe:</b> {{ universe }} &middot;
+   <b>Range:</b> {{ date_start }} → {{ date_end }}</p>
+
+<h2>Per-Setup Summary</h2>
+<table>
+<thead><tr>
+  <th>Setup</th><th>Tier</th><th>N</th>
+  <th>Win Rate</th><th>Mean R</th><th>PF</th>
+  <th>Mean MAE (R)</th><th>Mean MFE (R)</th><th>Detail</th>
+</tr></thead>
+<tbody>
+{% for row in summary %}
+  <tr>
+    <td>{{ row.setup }}</td>
+    <td>{{ row.tier }}</td>
+    <td>{{ row.n }}</td>
+    <td>{{ "%.1f%%" % (row.win_rate * 100) }}</td>
+    <td class="{{ 'win' if row.mean_r > 0 else 'loss' }}">{{ "%.2f" % row.mean_r }}</td>
+    <td>{{ "%.2f" % row.profit_factor if row.profit_factor != float('inf') else '∞' }}</td>
+    <td>{{ "%.2f" % row.mean_mae_r }}</td>
+    <td>{{ "%.2f" % row.mean_mfe_r }}</td>
+    <td><a href="{{ row.link }}">view</a></td>
+  </tr>
+{% endfor %}
+</tbody></table>
+
+{% if failures %}
+<h2>Failed / Skipped Tickers ({{ failures|length }})</h2>
+<ul>{% for f in failures %}<li>{{ f.ticker }}: {{ f.reason }}</li>{% endfor %}</ul>
+{% endif %}
+</body></html>

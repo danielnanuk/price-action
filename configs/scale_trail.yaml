@@ -1,0 +1,33 @@
+universe:
+  name: sp500
+  members_file: configs/sp500_members.txt
+date_range:
+  start: "2021-04-26"
+  end: "2026-04-26"
+data:
+  cache_dir: data
+  api_base_url: "https://api.massive.com"
+  api_key_env: POLYGON_API_KEY
+  rate_limit_per_min: 100
+  timespan: day
+  timespan_multiplier: 1
+detectors:
+  enabled: [h2, l2, flag, failed_breakout]  # Double T/B retired in v1 tuning
+  param_tiers: [strict, standard, loose]
+backtest:
+  # Brooks-classic exit: take half off at +1R, trail the runner with 3x ATR
+  # chandelier. Compared to baseline (2R fixed + 20-bar time stop) on the
+  # daily 5y x S&P 500 run:
+  #   baseline portfolio total R = -42.6  (avg -0.007 R/trade)
+  #   scale_trail portfolio total R = +168.6  (avg +0.026 R/trade, 4x lift)
+  # Pure trail-only (use_fixed_target=False, no scale) lifts further to
+  # +390.9R but degrades L2 sharply (PF 0.87 -> 0.61) — kept as research
+  # alternative, not promoted to default.
+  use_fixed_target: false
+  scale_at_1r: true
+  trailing_atr_mult: 3.0
+  time_stop_bars: 60     # generous cap; trail typically exits much earlier
+  same_bar_priority: stop_first
+report:
+  output_dir: reports
+  samples_per_setup: 50

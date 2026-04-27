@@ -1,0 +1,22 @@
+universe:
+  name: sp500
+  members_file: configs/sp500_members.txt
+date_range:
+  start: "2024-04-26"
+  end: "2026-04-26"
+data:
+  cache_dir: data_h        # isolated hourly cache (no daily contamination)
+  api_base_url: "https://api.massive.com"
+  api_key_env: POLYGON_API_KEY
+  rate_limit_per_min: 100
+  timespan: hour
+  timespan_multiplier: 1
+detectors:
+  enabled: [h2, l2, flag, failed_breakout, double_top_bottom]
+  param_tiers: [strict, standard, loose]
+backtest:
+  time_stop_bars: 20       # 20 hourly bars ≈ 3 RTH days; intraday-swing reasonable
+  same_bar_priority: stop_first
+report:
+  output_dir: reports_h
+  samples_per_setup: 30    # reduced from 50 — chart render time scales with samples

@@ -1,0 +1,44 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>{{ setup }} ({{ tier }}) — {{ run_id }}</title>
+<style>
+body{font-family:system-ui;margin:2em;max-width:1300px}
+.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:1em}
+.gallery figure{margin:0;border:1px solid #ddd;padding:6px}
+.gallery img{width:100%;display:block}
+table{border-collapse:collapse;margin:1em 0}
+th,td{border:1px solid #ccc;padding:4px 8px}
+</style></head><body>
+<p><a href="index.html">← back</a></p>
+<h1>{{ setup }} — {{ tier }}</h1>
+<p>N = {{ stats.n }} &middot; Win {{ "%.1f%%" % (stats.win_rate*100) }}
+   &middot; Mean R {{ "%.2f" % stats.mean_r }}
+   &middot; PF {{ "%.2f" % stats.profit_factor if stats.profit_factor != float('inf') else '∞' }}</p>
+
+<h2>By Regime</h2>
+<table><tr><th>Regime</th><th>N</th><th>Win</th><th>Mean R</th></tr>
+{% for r, s in by_regime.iterrows() %}
+  <tr><td>{{ r }}</td><td>{{ s.n }}</td>
+      <td>{{ "%.1f%%" % (s.win_rate*100) }}</td>
+      <td>{{ "%.2f" % s.mean_r }}</td></tr>
+{% endfor %}
+</table>
+
+<h2>By Year</h2>
+<table><tr><th>Year</th><th>N</th><th>Win</th><th>Mean R</th></tr>
+{% for y, s in by_year.iterrows() %}
+  <tr><td>{{ y }}</td><td>{{ s.n }}</td>
+      <td>{{ "%.1f%%" % (s.win_rate*100) }}</td>
+      <td>{{ "%.2f" % s.mean_r }}</td></tr>
+{% endfor %}
+</table>
+
+<h2>Sample Charts ({{ samples|length }} of {{ stats.n }})</h2>
+<div class="gallery">
+{% for s in samples %}
+<figure>
+  <img src="{{ s.image }}" loading="lazy">
+  <figcaption>{{ s.ticker }} {{ s.signal_date }} R={{ "%.2f" % s.pnl_r }} ({{ s.exit_reason }})</figcaption>
+</figure>
+{% endfor %}
+</div>
+</body></html>
