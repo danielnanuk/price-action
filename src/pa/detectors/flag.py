@@ -1,13 +1,17 @@
-"""Bull/Bear Flag detector: impulse leg + tight consolidation + breakout.
+"""Bull Flag detector: impulse leg + tight consolidation + breakout.
 
-Algorithm (per spec section 6.3, bull side; bear is symmetric):
+Algorithm (per spec section 6.3, bull side only):
   - Find impulse leg ending at impulse_end: >= min_impulse_bars consecutive
     bull bars OR a stretch where (high.max() - low.min()) > min_impulse_atr_mult * ATR.
   - Identify consolidation: next >= min_consolidation_bars whose total range
     < impulse_size * max_consolidation_range_ratio.
-  - Breakout: a subsequent bar's close > consolidation high (bull) or < low (bear).
-  - Entry on next bar's open; stop = consolidation low - buffer*ATR (bull);
+  - Breakout: a subsequent bar's close > consolidation high.
+  - Entry on next bar's open; stop = consolidation low - buffer*ATR;
     target = entry + min(impulse_size, target_r_cap * R).
+
+Bear flag was retired after the v1 daily backtest (5y x S&P 500) showed
+PF 0.55 — symmetric mirror of bull rules does not capture bear-flag
+mechanics correctly. Re-add once a separate algorithm is designed.
 """
 
 from __future__ import annotations
@@ -45,12 +49,16 @@ def detect_flag(bars: pd.DataFrame, params: SetupParams) -> pd.DataFrame:
 
     for i in range(min_imp + min_cons + 1, n - 1):
         cur_regime = regime[i]
-        if cur_regime not in (Regime.BULL_TREND.value, Regime.BEAR_TREND.value):
+        # Bull-only: 5y daily backtest showed Bear Flag at PF 0.55 (worst PF
+        # of any setup x regime combo). Bull Flag bracketed break-even.
+        # Retiring bear side until / unless a different stop/target rule is
+        # designed for it (current symmetric mirror is structurally wrong).
+        if cur_regime != Regime.BULL_TREND.value:
             continue
         if regime_strength[i] < min_strength:
             continue
 
-        side = Side.LONG if cur_regime == Regime.BULL_TREND.value else Side.SHORT
+        side = Side.LONG
         atr_i = float(atr[i]) if not pd.isna(atr[i]) else 0.0
         if atr_i == 0:
             continue
@@ -73,25 +81,15 @@ def detect_flag(bars: pd.DataFrame, params: SetupParams) -> pd.DataFrame:
         if cons_range > imp_size * max_cons_ratio:
             continue
 
-        # Breakout check at bar i: close beyond consolidation in trend direction
-        if side == Side.LONG:
-            if not (closes[i] > cons_hi):
-                continue
-            entry = float(opens[i + 1])
-            stop = cons_lo - buf * atr_i
-            risk = entry - stop
-            if risk <= 0:
-                continue
-            target = entry + min(imp_size, r_cap * risk)
-        else:
-            if not (closes[i] < cons_lo):
-                continue
-            entry = float(opens[i + 1])
-            stop = cons_hi + buf * atr_i
-            risk = stop - entry
-            if risk <= 0:
-                continue
-            target = entry - min(imp_size, r_cap * risk)
+        # Breakout check at bar i: close above consolidation high
+        if not (closes[i] > cons_hi):
+            continue
+        entry = float(opens[i + 1])
+        stop = cons_lo - buf * atr_i
+        risk = entry - stop
+        if risk <= 0:
+            continue
+        target = entry + min(imp_size, r_cap * risk)
 
         out.append(
             {
