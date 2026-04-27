@@ -28,8 +28,10 @@ from pa.detectors.params import (
     h2_params,
     l2_params,
     outside_bar_params,
+    tcl_params,
     wedge_params,
 )
+from pa.detectors.tcl import detect_tcl
 from pa.detectors.wedge import detect_wedge
 from pa.indicators import compute_indicators
 from pa.regime.classifier import classify_regime
@@ -46,6 +48,7 @@ DETECTOR_REGISTRY = {
     "wedge": (detect_wedge, wedge_params),
     "climactic": (detect_climactic, climactic_params),
     "outside_bar": (detect_outside_bar, outside_bar_params),
+    "tcl": (detect_tcl, tcl_params),
 }
 
 

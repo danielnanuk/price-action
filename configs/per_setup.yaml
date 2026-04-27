@@ -12,7 +12,7 @@ data:
   timespan: day
   timespan_multiplier: 1
 detectors:
-  enabled: [h2, l2, flag, failed_breakout, wedge, climactic, outside_bar]
+  enabled: [h2, l2, flag, failed_breakout, wedge, climactic, outside_bar, tcl]
   param_tiers: [strict, standard, loose]
 backtest:
   # Default strategy = baseline (used by H2 and L2 — walk-forward showed they
@@ -57,6 +57,15 @@ backtest:
     # All tiers and strategies positive in IS+OOS. Use scale_trail to capture
     # the V-recovery that follows a bull engulfing at new lows.
     outside_bar:
+      use_fixed_target: false
+      scale_at_1r: true
+      trailing_atr_mult: 3.0
+      time_stop_bars: 60
+    # TCL (Trend Channel Line) overshoot (long-only) — bottom rejection at
+    # projected trend line. Walk-forward STANDARD OOS PF 1.18 / +31R;
+    # LOOSE OOS PF 1.18 / +72R. Same family as Wedge / Climactic / OB
+    # (extreme-event reversals) — scale_trail captures the rejection rally.
+    tcl:
       use_fixed_target: false
       scale_at_1r: true
       trailing_atr_mult: 3.0

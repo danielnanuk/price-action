@@ -283,3 +283,39 @@ OUTSIDE_BAR_THRESHOLDS: dict[ParamTier, dict[str, float]] = {
 
 def outside_bar_params(tier: ParamTier) -> SetupParams:
     return SetupParams(tier=tier, thresholds=dict(OUTSIDE_BAR_THRESHOLDS[tier]))
+
+
+TCL_THRESHOLDS: dict[ParamTier, dict[str, float]] = {
+    # Trend Channel Line overshoot (long-only, bottom TCL rejection in bear regime).
+    ParamTier.STRICT: {
+        "lookback_bars": 80,
+        "swing_n": 2,
+        "min_overshoot_pct": 0.01,
+        "min_signal_score": 0.7,
+        "regime_strength_min": 0.7,
+        "stop_atr_buffer": 0.5,
+        "target_r_multiple": 2.0,
+    },
+    ParamTier.STANDARD: {
+        "lookback_bars": 60,
+        "swing_n": 2,
+        "min_overshoot_pct": 0.005,
+        "min_signal_score": 0.5,
+        "regime_strength_min": 0.5,
+        "stop_atr_buffer": 0.5,
+        "target_r_multiple": 2.0,
+    },
+    ParamTier.LOOSE: {
+        "lookback_bars": 40,
+        "swing_n": 2,
+        "min_overshoot_pct": 0.002,
+        "min_signal_score": 0.3,
+        "regime_strength_min": 0.3,
+        "stop_atr_buffer": 0.5,
+        "target_r_multiple": 2.0,
+    },
+}
+
+
+def tcl_params(tier: ParamTier) -> SetupParams:
+    return SetupParams(tier=tier, thresholds=dict(TCL_THRESHOLDS[tier]))
