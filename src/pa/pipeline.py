@@ -24,7 +24,9 @@ from pa.detectors.params import (
     flag_params,
     h2_params,
     l2_params,
+    wedge_params,
 )
+from pa.detectors.wedge import detect_wedge
 from pa.indicators import compute_indicators
 from pa.regime.classifier import classify_regime
 from pa.regime.signal_bar import signal_bar_score
@@ -37,6 +39,7 @@ DETECTOR_REGISTRY = {
     "flag": (detect_flag, flag_params),
     "failed_breakout": (detect_failed_breakout, failed_breakout_params),
     "double_top_bottom": (detect_double_top_bottom, double_tb_params),
+    "wedge": (detect_wedge, wedge_params),
 }
 
 

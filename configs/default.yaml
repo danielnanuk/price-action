@@ -12,11 +12,11 @@ data:
   timespan: day
   timespan_multiplier: 1
 detectors:
-  # Double T/B disabled in v1 detector tuning: 196k STANDARD candidates on
-  # hourly with 6.4% win rate and PF 0.83 — detector is structurally
-  # over-firing and shows no edge at any tier or TF. Re-enable once
-  # rewritten with stronger context filters (see follow-ups).
-  enabled: [h2, l2, flag, failed_breakout]
+  # double_top_bottom disabled (v2 detector ships in code but PF ~= 1.00 on
+  # current 5y daily — no edge yet, awaits longer history with multiple
+  # bear cycles). Wedge enabled — long-only (bottom wedge in bear regime)
+  # was OOS-validated at PF 1.04-1.13 across all tiers.
+  enabled: [h2, l2, flag, failed_breakout, wedge]
   param_tiers: [strict, standard, loose]
 backtest:
   time_stop_bars: 20

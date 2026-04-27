@@ -12,7 +12,7 @@ data:
   timespan: day
   timespan_multiplier: 1
 detectors:
-  enabled: [h2, l2, flag, failed_breakout]
+  enabled: [h2, l2, flag, failed_breakout, wedge]
   param_tiers: [strict, standard, loose]
 backtest:
   # Default strategy = baseline (used by H2 and L2 — walk-forward showed they
@@ -30,6 +30,15 @@ backtest:
       trailing_atr_mult: 3.0
       time_stop_bars: 60
     failed_breakout:
+      use_fixed_target: false
+      scale_at_1r: true
+      trailing_atr_mult: 3.0
+      time_stop_bars: 60
+    # Wedge (long-only, bottom-wedge in bear regime) preferred scale_trail
+    # in walk-forward research: long PF lifted from 1.04-1.12 (baseline) to
+    # 1.12-1.32 (scale_trail) across all tiers. The reversal benefits from
+    # letting the recovery rally run rather than capping at 2R.
+    wedge:
       use_fixed_target: false
       scale_at_1r: true
       trailing_atr_mult: 3.0

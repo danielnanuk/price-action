@@ -168,3 +168,43 @@ DOUBLE_TB_THRESHOLDS: dict[ParamTier, dict[str, float]] = {
 
 def double_tb_params(tier: ParamTier) -> SetupParams:
     return SetupParams(tier=tier, thresholds=dict(DOUBLE_TB_THRESHOLDS[tier]))
+
+
+WEDGE_THRESHOLDS: dict[ParamTier, dict[str, float]] = {
+    # Three-push reversal in bear regime (long entry). Tighter ratio = stricter
+    # momentum-decay requirement, longer lookback = more "established" trend.
+    ParamTier.STRICT: {
+        "lookback_bars": 80,
+        "swing_n": 2,
+        "max_push_ratio": 0.6,
+        "min_pushes_total_atr": 4.0,
+        "min_signal_score": 0.7,
+        "regime_strength_min": 0.7,
+        "stop_atr_buffer": 0.5,
+        "target_r_multiple": 2.0,
+    },
+    ParamTier.STANDARD: {
+        "lookback_bars": 60,
+        "swing_n": 2,
+        "max_push_ratio": 0.7,
+        "min_pushes_total_atr": 3.0,
+        "min_signal_score": 0.6,
+        "regime_strength_min": 0.5,
+        "stop_atr_buffer": 0.5,
+        "target_r_multiple": 2.0,
+    },
+    ParamTier.LOOSE: {
+        "lookback_bars": 40,
+        "swing_n": 2,
+        "max_push_ratio": 0.85,
+        "min_pushes_total_atr": 2.0,
+        "min_signal_score": 0.5,
+        "regime_strength_min": 0.3,
+        "stop_atr_buffer": 0.5,
+        "target_r_multiple": 2.0,
+    },
+}
+
+
+def wedge_params(tier: ParamTier) -> SetupParams:
+    return SetupParams(tier=tier, thresholds=dict(WEDGE_THRESHOLDS[tier]))
