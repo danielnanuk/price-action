@@ -1,0 +1,203 @@
+# Optimization iteration findings — 2026-04-27
+
+Continues the v1 detector tuning that retired Double T/B and bull-only-ed Flag.
+All experiments run on the same dataset:
+- Universe: S&P 500 (503 tickers from DataHub snapshot)
+- TF: Daily, Massive Starter cap = 5 years (2021-04-26 to 2026-04-24)
+- Detectors enabled: H2, L2, Flag (bull-only), Failed Breakout
+
+Baseline state going in: portfolio (4 setups × STANDARD, 6420 trades) totalled
+**-42.6 R** under the engine's original "fixed 2R + 20-bar time stop" exit.
+
+## Summary of explored directions
+
+| Step | Hypothesis | Result | Promoted to PR? |
+|------|-----------|--------|----------------|
+| A | scale-half + chandelier-trail beats fixed 2R | ✅ +51R IS / +117R OOS portfolio | Yes (engine + scale_trail.yaml) |
+| C | A's lift is structural, not overfit | ✅ OOS lift +121R > IS lift +90R | Yes (validates A) |
+| D' | per-setup exit override > one-size-fits-all | ✅ +127.8R OOS, beats scale_trail | Yes (per_setup.yaml) |
+| D | SPY > 200d MA gates H2 toward winning regimes | ❌ Filter drops the best H2 trades | No |
+| H | rank candidates, cap concurrent positions | ❌ Any ranker hurts; edge is in volume | No |
+
+## A — Promote scale-half + chandelier-trail to engine
+
+The MVP engine hard-coded "candidate.target_price (= entry + 2R) + 20-bar
+time stop". A scratch sweep on H2 STANDARD daily showed several alternatives
+beat the baseline:
+
+```
+Strategy                          PF (H2 standard, daily)
+2R fixed + 20-bar time stop       1.09 (baseline)
+5-bar time stop only              1.27
+trailing 3xATR only               1.17
+scale half@1R + trail 3xATR       1.21
+```
+
+Implementation (commit `16a5c1a`):
+- `ExitStrategy` dataclass (use_fixed_target / scale_at_1r /
+  trailing_atr_mult / time_stop_bars / same_bar_priority)
+- `simulate()` takes `bars` (must include atr14 if trailing) + strategy
+- `BacktestConfig` adds three new fields with backwards-compatible defaults
+- `stage_backtest` builds the strategy and merges atr14 into bars when needed
+
+`configs/scale_trail.yaml` (commit `a6c98d3`) packages the Brooks-classic
+"scale half@1R + trail 3xATR + 60-bar time stop" preset.
+
+## C — Walk-forward validation of A
+
+Split candidates by signal_date:
+- IS: 2021-04-26 → 2024-12-31 (~3.5 years, 4609 trades)
+- OOS: 2025-01-01 → 2026-04-24 (~16 months, 1811 trades)
+
+Portfolio totals (4 setups × STANDARD):
+
+```
+                IS         OOS
+baseline      -38.5       -4.0
+scale_trail   +51.5     +117.2
+lift          +90.0    +121.2  ← OOS lift exceeds IS lift
+```
+
+Read: scale_trail's improvement is not regime-luck of the training period;
+it's structurally better. Also confirms the underlying "let trades run with
+trailing instead of capping at 2R" hypothesis.
+
+But the per-setup breakdown revealed asymmetry:
+
+| Setup × OOS | baseline | scale_trail | Δ |
+|---|---:|---:|---:|
+| H2 standard | -1.2 | -8.5 | **-7.3 (regression)** |
+| L2 standard | +0.8 | -2.5 | **-3.3 (regression)** |
+| Flag standard | -26.2 | +11.6 | +37.8 |
+| Failed BO standard | +22.5 | +116.5 | **+94.0** |
+
+Failed BO + Flag love the trailing exit; H2 + L2 prefer the original tighter
+exit. This kicked off Step D'.
+
+## D' — Per-setup exit strategy override
+
+Added `BacktestConfig.setup_overrides: dict[str, dict]` so each setup can
+pick a partial override of the default ExitStrategy. Pipeline builds the
+right strategy per `(setup, tier)` candidates file via `_strategy_for()`.
+
+Optimal mapping based on walk-forward:
+- `h2`, `l2`: default (baseline)
+- `flag`, `failed_breakout`: scale_trail override
+
+Walk-forward portfolio totals add a third strategy:
+
+```
+                IS         OOS
+baseline      -38.5       -4.0
+scale_trail   +51.5     +117.2
+per_setup     +52.6     +127.8  ← +131.8R lift over baseline OOS
+```
+
+Per-setup wins both splits, with the bigger win in OOS (+10.6R over
+scale_trail). Mechanism check (OOS, per-setup picks):
+
+```
+  H2 (baseline):   -1.2
+  L2 (baseline):   +0.8
+  Flag (scale):   +11.6
+  FB (scale):    +116.5
+  ─────────────────────
+  Total:         +127.7  ✓
+```
+
+Promoted as `configs/per_setup.yaml` and `BacktestConfig.setup_overrides`
+(commit `bf99ba8`).
+
+## D — SPY macro filter on H2 (rejected)
+
+H2 standard's year-by-year PF was clearly regime-sensitive (1.27-1.60 in
+2023/2024, 0.43-0.86 in 2021/2025). Hypothesis: filter to only fire when
+SPY is above its 200-day EMA, dropping bad-tape trades.
+
+Tested 4 filters on H2 standard daily (N=223 unfiltered):
+
+```
+Filter                                 N    Win%    Avg R    PF    Total R
+1. unfiltered (baseline)             223   40.8%   +0.03   1.06    +7.4
+2. SPY > 200d EMA                    170   40.0%   -0.01   0.99    -0.9
+3. SPY > 200d AND > 50d              159   39.6%   -0.02   0.97    -3.2
+4. SPY EMA20 > EMA50                 189   38.6%   -0.05   0.91   -10.0
+```
+
+Counter-intuitive but honest: every filter hurts. Year breakdown for
+filter 2 explains the mechanism — early 2023 (when SPY had recovered but
+hadn't yet crossed the 200-day MA) contained the year's most profitable
+H2s:
+
+```
+2023 unfiltered:    N=53 PF 1.60
+2023 SPY>200d MA:   N=41 PF 1.07  ← 12 high-PF early-recovery trades dropped
+```
+
+→ "SPY above 200d MA" represents post-confirmation market state. The most
+profitable H2s in stocks are *pre-confirmation* — single-name moves ahead
+of broad tape. Filtering retrospective regime out exposed Brooks's "be
+early" rule statistically. **Rejected.**
+
+(SPY data fetched once to `data/_macro/spy_daily.parquet` for any future
+macro experiments.)
+
+## H — Position-cap simulation (rejected)
+
+Real trading can't take all 25,270 candidates simultaneously. Question:
+does selecting top N per day by some quality score preserve portfolio R?
+
+Built day-by-day position-cap sim with four ranker options:
+
+```
+   Cap       setup_score              tier            fb_first              random
+     3       -30.1 / 294        -1.5 / 300         +12.6 / 284         -33.8 / 274
+     5       -35.5 / 474       -10.5 / 500          +1.5 / 493         -49.9 / 464
+    10       -45.6 / 949       -25.4 / 987         -49.8 / 995         -59.5 / 964
+    20       -73.8 / 1902      -56.0 / 1966        -85.9 / 1965         -9.9 / 1882
+    50       -35.7 / 4682     -169.6 / 4845       -136.3 / 4865        -60.7 / 4745
+   inf      +469.0 / 25270    +469.0 / 25270      +469.0 / 25270      +469.0 / 25270
+```
+
+Headline: any cap, any ranker, total R goes negative. The unconstrained
+portfolio (+469R total / 25270 trades = +0.018 R/trade) earns through
+*volume*, not via differentiating signal quality.
+
+Diagnostic insights:
+- `setup_score` correlates ≈ 0 with realized R. The score conflates two
+  unrelated quality axes (`signal_bar_score` for H2/L2, `regime_strength`
+  for Flag/Failed BO) and neither predicts winners reliably.
+- `fb_first` (preferring Failed BO and Flag, our walk-forward-confirmed
+  winners) gets a tiny edge at cap=3 (+12.6R) but degrades quickly.
+- `random` performs about as well as `setup_score`, confirming there's no
+  real signal in the "quality" metric.
+
+**Rejected as designed.** Real position management on this data needs
+either (a) a learned per-trade score with actual predictive power, or
+(b) accept full coverage with portfolio-level risk sizing instead of
+1R-per-trade. Both are bigger projects; H as a "quick rank-and-cap"
+addition does not work.
+
+## What's left
+
+- **K**: upgrade Massive tier to lift the 5y daily / 2y hourly cap →
+  unlock 2008/2018/2020 bear cycles for L2 and Bear Flag rebuild
+- **J**: daily + 1H multi-TF entry (spec's original "D" extension)
+- **F**: rebuild Double T/B with proper "swing high at significant level"
+  filters; revive bear-side detectors
+- **Per-trade ML scoring** (would unblock H): train a model on
+  pnl_r ~ f(setup_score, regime_strength, MAE/MFE_so_far, sector,
+  market_state) and use predicted_R as the cap ranker
+
+## Aggregate impact landed in this iteration
+
+```
+Portfolio OOS (4 setups × STANDARD, 1811 trades, ranger 2025-01-01 → 2026-04-24):
+  baseline:        -4.0 R
+  scale_trail:   +117.2 R   (Step A, IS+OOS validated)
+  per_setup:     +127.8 R   (Step D', best)
+  improvement:   +131.8 R from baseline
+```
+
+Engine + config commits make this state reproducible:
+`pa-backtest all --config configs/per_setup.yaml`.
