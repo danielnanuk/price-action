@@ -22,6 +22,7 @@ Baseline state going in: portfolio (4 setups × STANDARD, 6420 trades) totalled
 | F | Rewrite Double T/B detector with stricter rules | ⚠️ Structurally clean, but PF ~= 1.00 | Code yes, default no |
 | J' | True nested multi-TF (daily H2 ∩ hourly H2) | ❌ Setups are disjoint events on the two TFs | No |
 | W | Add Wedge / 3-push reversal detector (long-only) | ✅ +13.4R OOS / +86.2R IS @ STANDARD | Yes (default + per_setup) |
+| Cl | Add Climactic reversal detector (long-only) | ✅ +12.5R OOS / +22.2R IS @ STANDARD | Yes (default + per_setup) |
 
 ## A — Promote scale-half + chandelier-trail to engine
 
@@ -374,6 +375,56 @@ were plentiful.
   pnl_r ~ f(setup_score, regime_strength, MAE/MFE_so_far, sector,
   market_state) and use predicted_R as the cap ranker
 
+## Cl — Climactic reversal detector (long-only, ADOPTED)
+
+Sister setup to Wedge — both capture trend-exhaustion reversals, but on
+different timescales. Wedge identifies multi-bar accumulating exhaustion
+(3-push); Climactic identifies the single-bar panic/euphoria moment.
+
+Pattern (bottom climax, the live path):
+  - Climax bar (i-1) in mature bear_trend:
+    - range > min_climax_atr_mult × ATR (oversized)
+    - body > min_body_pct (full-bodied)
+    - close near low (the panic close)
+    - new local low
+    - bear bar (down move into panic)
+  - Reversal bar (i) is bull, closes above climax close (clear rejection)
+  - Entry: high[i] + tick. Stop: low[i-1] - buffer × ATR. Target: 2R.
+
+Walk-forward on daily 5y × S&P 500, baseline exit:
+
+```
+tier      side  IS  N=    PF      OOS  N=    PF      verdict
+strict    long  11        0.59    12         0.69    too few candidates
+standard  long  184       1.26    146        1.23    ✓ both PF > 1.2
+loose     long  1253      1.08    696        1.23    ✓ OOS lift
+```
+
+Top climax (short side) failed OOS in mostly-bull 2025-2026 — same
+regime mismatch as Bear Flag / Top Wedge. Long-only promoted; short
+retired pending bear-cycle data.
+
+Per-setup mapping: `climactic -> scale_trail` (climactic bottoms tend to
+v-shape into recoveries — let the runner ride).
+
+Portfolio impact at STANDARD tier:
+  Standalone climactic: +35R full 5y (+22 IS, +13 OOS)
+  Combined 6-setup portfolio:
+    Full 5y total:     +315R
+    IS  (2021-2024):   +161R (vs +138.8 without, +22 lift)
+    OOS (2025-2026):   +153.7R (vs +141.2 without, +12.5 lift)
+
+Cumulative lift in this iteration:
+
+```
+                 OOS R     N         cumulative IS+OOS lift
+baseline         -4.0      1811      0
++ Step A        +117.2     1811      +121.2
++ Step D'       +127.8     1811      +131.8
++ Step W        +141.2     2059      +145.2
++ Step Cl       +153.7     2205      +157.7  <- current
+```
+
 ## Aggregate impact landed in this iteration
 
 ```
@@ -383,11 +434,11 @@ Portfolio OOS (STANDARD tier, range 2025-01-01 → 2026-04-24):
   baseline       1811       -4.0           starting point
   + Step A       1811      +117.2          +121.2
   + Step D'      1811      +127.8          +131.8
-  + Step W       2059      +141.2          +145.2  <- final
-              (+248 wedge)              (+13.4 from wedge)
+  + Step W       2059      +141.2          +145.2
+  + Step Cl      2205      +153.7          +157.7  <- final
 
-Full 5y Total R (5 setups STANDARD, 7386 trades): +280.0 R
-                                                  (avg +0.038 R/trade)
+Full 5y Total R (6 setups STANDARD, 7716 trades): +315 R
+                                                  (avg +0.041 R/trade)
 ```
 
 Final config: `pa-backtest all --config configs/per_setup.yaml`.
