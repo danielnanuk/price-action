@@ -208,3 +208,42 @@ WEDGE_THRESHOLDS: dict[ParamTier, dict[str, float]] = {
 
 def wedge_params(tier: ParamTier) -> SetupParams:
     return SetupParams(tier=tier, thresholds=dict(WEDGE_THRESHOLDS[tier]))
+
+
+CLIMACTIC_THRESHOLDS: dict[ParamTier, dict[str, float]] = {
+    # Single-bar exhaustion (long-only, bottom climax in bear regime).
+    ParamTier.STRICT: {
+        "min_climax_atr_mult": 2.0,
+        "min_body_pct": 0.8,
+        "min_close_pos": 0.8,
+        "new_extreme_lookback": 30,
+        "min_signal_score": 0.7,
+        "regime_strength_min": 0.7,
+        "stop_atr_buffer": 0.5,
+        "target_r_multiple": 2.0,
+    },
+    ParamTier.STANDARD: {
+        "min_climax_atr_mult": 1.5,
+        "min_body_pct": 0.7,
+        "min_close_pos": 0.7,
+        "new_extreme_lookback": 20,
+        "min_signal_score": 0.6,
+        "regime_strength_min": 0.5,
+        "stop_atr_buffer": 0.5,
+        "target_r_multiple": 2.0,
+    },
+    ParamTier.LOOSE: {
+        "min_climax_atr_mult": 1.2,
+        "min_body_pct": 0.5,
+        "min_close_pos": 0.6,
+        "new_extreme_lookback": 15,
+        "min_signal_score": 0.4,
+        "regime_strength_min": 0.3,
+        "stop_atr_buffer": 0.5,
+        "target_r_multiple": 2.0,
+    },
+}
+
+
+def climactic_params(tier: ParamTier) -> SetupParams:
+    return SetupParams(tier=tier, thresholds=dict(CLIMACTIC_THRESHOLDS[tier]))

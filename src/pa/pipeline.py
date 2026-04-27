@@ -13,12 +13,14 @@ from pa.backtest import ExitStrategy, simulate
 from pa.config import BacktestConfig, Config
 from pa.data.cache import OhlcvCache
 from pa.data.client import MassiveClient
+from pa.detectors.climactic import detect_climactic
 from pa.detectors.double_top_bottom import detect_double_top_bottom
 from pa.detectors.failed_breakout import detect_failed_breakout
 from pa.detectors.flag import detect_flag
 from pa.detectors.h2 import detect_h2
 from pa.detectors.l2 import detect_l2
 from pa.detectors.params import (
+    climactic_params,
     double_tb_params,
     failed_breakout_params,
     flag_params,
@@ -40,6 +42,7 @@ DETECTOR_REGISTRY = {
     "failed_breakout": (detect_failed_breakout, failed_breakout_params),
     "double_top_bottom": (detect_double_top_bottom, double_tb_params),
     "wedge": (detect_wedge, wedge_params),
+    "climactic": (detect_climactic, climactic_params),
 }
 
 

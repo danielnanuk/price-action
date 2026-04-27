@@ -12,7 +12,7 @@ data:
   timespan: day
   timespan_multiplier: 1
 detectors:
-  enabled: [h2, l2, flag, failed_breakout, wedge]
+  enabled: [h2, l2, flag, failed_breakout, wedge, climactic]
   param_tiers: [strict, standard, loose]
 backtest:
   # Default strategy = baseline (used by H2 and L2 — walk-forward showed they
@@ -39,6 +39,15 @@ backtest:
     # 1.12-1.32 (scale_trail) across all tiers. The reversal benefits from
     # letting the recovery rally run rather than capping at 2R.
     wedge:
+      use_fixed_target: false
+      scale_at_1r: true
+      trailing_atr_mult: 3.0
+      time_stop_bars: 60
+    # Climactic (long-only, bottom climax in bear regime) — same family as
+    # Wedge (single-bar exhaustion vs 3-push accumulation). Walk-forward
+    # showed PF 1.23 OOS at standard, +12R OOS contribution. Use scale_trail
+    # to ride the recovery (climactic bottoms tend to mark v-shaped reversals).
+    climactic:
       use_fixed_target: false
       scale_at_1r: true
       trailing_atr_mult: 3.0
