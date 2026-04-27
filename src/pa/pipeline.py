@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from pa.backtest import simulate
+from pa.backtest import ExitStrategy, simulate
 from pa.config import Config
 from pa.data.cache import OhlcvCache
 from pa.data.client import MassiveClient
@@ -138,12 +138,33 @@ def stage_detect(cfg: Config) -> None:
 def stage_backtest(cfg: Config) -> None:
     cand_dir = cfg.data.cache_dir / "candidates"
     ohlcv_dir = cfg.data.cache_dir / "ohlcv"
+    ind_dir = cfg.data.cache_dir / "indicators"
     dst = cfg.data.cache_dir / "trades"
     dst.mkdir(parents=True, exist_ok=True)
 
-    ohlcv_by_ticker = {
-        f.name.split("_")[0]: pd.read_parquet(f) for f in ohlcv_dir.glob("*.parquet")
-    }
+    strategy = ExitStrategy(
+        use_fixed_target=cfg.backtest.use_fixed_target,
+        scale_at_1r=cfg.backtest.scale_at_1r,
+        trailing_atr_mult=cfg.backtest.trailing_atr_mult,
+        time_stop_bars=cfg.backtest.time_stop_bars,
+        same_bar_priority=cfg.backtest.same_bar_priority,
+    )
+    needs_atr = strategy.trailing_atr_mult > 0
+
+    # Build per-ticker bars: OHLCV merged with atr14 if trailing strategies need it.
+    bars_by_ticker: dict[str, pd.DataFrame] = {}
+    for f in ohlcv_dir.glob("*.parquet"):
+        cache_ticker = f.name.split("_")[0]
+        ohlcv = pd.read_parquet(f)
+        if ohlcv.empty:
+            bars_by_ticker[cache_ticker] = ohlcv
+            continue
+        if needs_atr:
+            ind_path = ind_dir / f.name
+            if ind_path.exists():
+                ind = pd.read_parquet(ind_path)
+                ohlcv = ohlcv.merge(ind[["date", "atr14"]], on="date", how="left")
+        bars_by_ticker[cache_ticker] = ohlcv
 
     for cand_file in sorted(cand_dir.glob("*.parquet")):
         cands = pd.read_parquet(cand_file)
@@ -151,16 +172,11 @@ def stage_backtest(cfg: Config) -> None:
             cands.to_parquet(dst / cand_file.name, index=False)
             continue
         all_trades: list[pd.DataFrame] = []
-        for ticker, group in cands.groupby("ticker"):
-            ohlcv = ohlcv_by_ticker.get(str(ticker))
-            if ohlcv is None or ohlcv.empty:
+        for group_key, group in cands.groupby("ticker"):
+            bars = bars_by_ticker.get(str(group_key))
+            if bars is None or bars.empty:
                 continue
-            trades = simulate(
-                group,
-                ohlcv,
-                time_stop_bars=cfg.backtest.time_stop_bars,
-                same_bar_priority=cfg.backtest.same_bar_priority,
-            )
+            trades = simulate(group, bars, strategy=strategy)
             all_trades.append(trades)
         combined = pd.concat(all_trades, ignore_index=True) if all_trades else pd.DataFrame()
         combined.to_parquet(dst / cand_file.name, index=False)

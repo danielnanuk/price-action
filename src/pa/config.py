@@ -46,6 +46,9 @@ class BacktestConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
     time_stop_bars: int = Field(gt=0)
     same_bar_priority: Literal["stop_first", "target_first"]
+    use_fixed_target: bool = True
+    scale_at_1r: bool = False
+    trailing_atr_mult: float = Field(default=0.0, ge=0.0)
 
 
 class ReportConfig(BaseModel):

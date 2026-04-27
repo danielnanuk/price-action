@@ -2,6 +2,6 @@
 
 from __future__ import annotations
 
-from pa.backtest.engine import simulate
+from pa.backtest.engine import ExitStrategy, simulate
 
-__all__ = ["simulate"]
+__all__ = ["ExitStrategy", "simulate"]

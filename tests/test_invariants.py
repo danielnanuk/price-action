@@ -8,7 +8,7 @@ from pathlib import Path
 import pandas as pd
 from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
-from pa.backtest import simulate
+from pa.backtest import ExitStrategy, simulate
 from pa.detectors.h2 import detect_h2
 from pa.detectors.params import h2_params
 from pa.indicators import compute_indicators
@@ -111,8 +111,10 @@ def test_trade_ledger_invariants(
     trades = simulate(
         cands,
         ohlcv,
-        time_stop_bars=time_stop_bars,
-        same_bar_priority=same_bar_priority,  # type: ignore[arg-type]
+        strategy=ExitStrategy(
+            time_stop_bars=time_stop_bars,
+            same_bar_priority=same_bar_priority,  # type: ignore[arg-type]
+        ),
     )
     assert (trades["entry_date"] <= trades["exit_date"]).all()
     assert trades["pnl_r"].notna().all()
