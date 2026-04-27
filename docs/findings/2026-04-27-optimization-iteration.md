@@ -21,6 +21,7 @@ Baseline state going in: portfolio (4 setups × STANDARD, 6420 trades) totalled
 | J | Daily H2 + 1H trigger entry (tight hourly stop) | ❌ 1H stop is structurally too tight | No |
 | F | Rewrite Double T/B detector with stricter rules | ⚠️ Structurally clean, but PF ~= 1.00 | Code yes, default no |
 | J' | True nested multi-TF (daily H2 ∩ hourly H2) | ❌ Setups are disjoint events on the two TFs | No |
+| W | Add Wedge / 3-push reversal detector (long-only) | ✅ +13.4R OOS / +86.2R IS @ STANDARD | Yes (default + per_setup) |
 
 ## A — Promote scale-half + chandelier-trail to engine
 
@@ -312,6 +313,56 @@ The remaining genuine multi-TF angle would be **cross-setup confirmation**
 the consolidation). That's a much larger combinatorial search, deferred
 unless follow-up data requires it.
 
+## W — Add Wedge / 3-push reversal detector (long-only, ADOPTED)
+
+First new setup added since the v1 MVP. Brooks "wedge" = three progressive
+swing extremes (lower-lows for bottom, higher-highs for top) with each
+push smaller than the prior — momentum decay → reversal.
+
+Walk-forward on daily 5y × S&P 500, default tier baseline strategy:
+
+```
+tier      side   IS  N=    PF      OOS N=    PF      verdict
+strict    short  360       1.28    99        0.65    short fails OOS
+strict    long   227       1.40    96        1.13    long ✓
+standard  short  990       1.21    321       0.87    short fails OOS
+standard  long   718       1.28    248       1.12    long ✓
+loose     short  2241      1.07    740       0.81    short fails OOS
+loose     long   1696      1.15    560       1.04    long ✓
+```
+
+Top wedge (short) shows IS-only edge that disappears in 2025-2026's
+mostly-bull regime — same regime mismatch that retired Bear Flag.
+Long-side promoted; short-side retired (revive on bear-cycle data).
+
+Per-setup mapping: `wedge -> scale_trail` (matches walk-forward — long
+wedges in bear regime love trailing the recovery rally, lifting
+standard PF from 1.12 baseline → 1.24 scale_trail).
+
+Portfolio impact at STANDARD tier across all 5 setups (per_setup config):
+
+```
+                    IS                         OOS
+  4 setups (no W): +52.6 (n=4609)             +127.8 (n=1811)
+  5 setups (+W):   +138.8 (n=5327)            +141.2 (n=2059)
+  Wedge lift:      +86.2 IS                   +13.4 OOS
+  Wedge alone:     +86.2 R total IS, +13.4 OOS — +99.6 across full 5y
+                   (single setup, second-largest contributor after Failed BO)
+```
+
+OOS Wedge PF = 1.12 across 248 STANDARD trades — strictly above break-
+even, on a window where bottom wedges are sparse (mostly-bull). The IS
+lift of +86R reflects 2021-2024's micro-bear cycles where bottom wedges
+were plentiful.
+
+**Action taken:**
+- `src/pa/detectors/wedge.py` (long-only, bottom-wedge in bear regime)
+- `WEDGE_THRESHOLDS` + `wedge_params` in `params.py`
+- Registered in `pipeline.DETECTOR_REGISTRY`
+- `default.yaml` enables wedge alongside h2/l2/flag/failed_breakout
+- `per_setup.yaml` overrides wedge to scale_trail
+- Smoke tests in `tests/test_detectors_wedge.py`
+
 ## What's left
 
 - **K**: upgrade Massive tier to lift the 5y daily / 2y hourly cap →
@@ -326,12 +377,17 @@ unless follow-up data requires it.
 ## Aggregate impact landed in this iteration
 
 ```
-Portfolio OOS (4 setups × STANDARD, 1811 trades, ranger 2025-01-01 → 2026-04-24):
-  baseline:        -4.0 R
-  scale_trail:   +117.2 R   (Step A, IS+OOS validated)
-  per_setup:     +127.8 R   (Step D', best)
-  improvement:   +131.8 R from baseline
+Portfolio OOS (STANDARD tier, range 2025-01-01 → 2026-04-24):
+
+                 N (OOS)    Total R OOS    cumulative lift
+  baseline       1811       -4.0           starting point
+  + Step A       1811      +117.2          +121.2
+  + Step D'      1811      +127.8          +131.8
+  + Step W       2059      +141.2          +145.2  <- final
+              (+248 wedge)              (+13.4 from wedge)
+
+Full 5y Total R (5 setups STANDARD, 7386 trades): +280.0 R
+                                                  (avg +0.038 R/trade)
 ```
 
-Engine + config commits make this state reproducible:
-`pa-backtest all --config configs/per_setup.yaml`.
+Final config: `pa-backtest all --config configs/per_setup.yaml`.
