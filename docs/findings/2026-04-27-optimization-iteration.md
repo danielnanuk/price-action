@@ -18,6 +18,7 @@ Baseline state going in: portfolio (4 setups × STANDARD, 6420 trades) totalled
 | D' | per-setup exit override > one-size-fits-all | ✅ +127.8R OOS, beats scale_trail | Yes (per_setup.yaml) |
 | D | SPY > 200d MA gates H2 toward winning regimes | ❌ Filter drops the best H2 trades | No |
 | H | rank candidates, cap concurrent positions | ❌ Any ranker hurts; edge is in volume | No |
+| J | Daily H2 + 1H trigger entry (tight hourly stop) | ❌ 1H stop is structurally too tight | No |
 
 ## A — Promote scale-half + chandelier-trail to engine
 
@@ -177,6 +178,56 @@ either (a) a learned per-trade score with actual predictive power, or
 (b) accept full coverage with portfolio-level risk sizing instead of
 1R-per-trade. Both are bigger projects; H as a "quick rank-and-cap"
 addition does not work.
+
+## J — Daily + 1H multi-TF entry (rejected)
+
+Brooks's stated practice mixes timeframes: daily detects the setup; hourly
+times a precise entry. Hypothesis: a tight hourly stop reduces R per trade
+and lifts PF on H2.
+
+Implementation (research only):
+- For each daily H2 STANDARD candidate, find the first 1H bar (within the
+  next 21 hours = ~3 RTH sessions) whose `high >= daily_signal_high`.
+  This simulates a stop-buy filling intraday.
+- Entry = daily_signal_high + 1 tick (the stop-buy price).
+- Stop = trigger 1H bar's low - 0.5 × hourly_ATR (mirror of daily's 0.5 ATR buffer).
+- Target = entry + 2 × R (R = entry - stop).
+- Re-simulate on HOURLY bars from the trigger bar onward (140 hourly bars
+  ≈ 20 RTH days, mirroring daily 20-bar time stop).
+
+Results on H2 standard, candidates that fall within the 2024-05 → 2026-04
+hourly cache window:
+
+```
+condition                              N     Win%    Avg R    PF    Total R
+pure daily entry, full 5y            223    40.8%   +0.03   1.06    +7.4
+pure daily entry, same time window   103    37.9%   -0.03   0.95    -3.0
+daily + 1H entry (no stop buffer)    101     0.0%   -1.00   0.00  -101.0
+daily + 1H entry (0.5x hourly ATR)   103    27.2%   -0.20   0.72   -20.8
+```
+
+Both 1H entry variants underperformed pure daily on the comparable window.
+Three contributing factors:
+
+1. **Hourly stop is structurally tighter.** 0.5 × hourly ATR is roughly an
+   order of magnitude smaller than 0.5 × daily ATR. Many trades exit on
+   intraday mean reversion before the daily-trend resumption that the
+   daily H2 was set up to capture.
+2. **The trigger doesn't add alpha.** Daily H2 is already valid by the
+   time the daily signal bar prints. Waiting for "first 1H bar above
+   daily high" simply delays entry — it doesn't filter false signals,
+   because every daily H2 will tick above its signal bar high at some
+   point if it works at all.
+3. **Brooks's actual practice ≠ this implementation.** He doesn't just
+   enter on intraday stop-buy; he waits for a *secondary* setup on the
+   hourly timeframe (hourly H2, hourly reversal bar, hourly hammer) inside
+   the daily context. That's a layered detector — effectively running the
+   same five detectors on hourly bars and consulting both. ~5x the engineering
+   work of this scratch experiment.
+
+**Rejected for the current iteration.** A real multi-TF implementation
+should compose two detector passes (daily + hourly) and require both to
+fire — that's a Step J' candidate, deferred.
 
 ## What's left
 
