@@ -25,6 +25,7 @@ Baseline state going in: portfolio (4 setups × STANDARD, 6420 trades) totalled
 | Cl | Add Climactic reversal detector (long-only) | ✅ +12.5R OOS / +22.2R IS @ STANDARD | Yes (default + per_setup) |
 | OB | Add Outside Bar reversal detector (long-only) | ✅ +47.6R OOS / +121.9R IS @ STANDARD (best new setup) | Yes (default + per_setup) |
 | ii | Add ii (inside-inside) continuation breakout detector | ❌ Almost every tier × side × split has PF < 1.0 | No |
+| FF | Add Final Flag failed-breakout reversal detector | ❌ Strict/standard sample too small; loose OOS PF 0.56 | No |
 
 ## A — Promote scale-half + chandelier-trail to engine
 
@@ -492,6 +493,44 @@ rate to be break-even, ii hits ~25%).
 context filters can't extract Brooks's qualitative edge. The remaining
 candidates (Final flag, TCL overshoot) likely face the same ceiling
 unless we add stronger context filters or learned ranking.
+
+## FF — Final Flag failed-breakout reversal (rejected)
+
+Brooks's "final flag": the last flag in a trend is the one that fails.
+Hypothesis: detect flag breakouts that fail (close back below flag low
+within N bars) → short signal in mature bull regime.
+
+Walk-forward on daily 5y × S&P 500:
+
+```
+tier      split  strategy        N      PF      Total R
+strict    IS     baseline        3      0.00     -2.1   (sample too small)
+strict    OOS                    0      -        -
+standard  IS     baseline        23     0.79     -2.2
+standard  OOS    baseline        6      3.54     +3.2   (N=6, noise)
+loose     IS     baseline        301    1.00     -0.3   (break-even, no edge)
+loose     OOS    baseline        105    0.56    -26.5
+```
+
+Two failure modes captured:
+  - Strict / standard: sample too small (~30 total over 5 years × 503
+    tickers). Flag breakout failure is genuinely rare; mechanical
+    detection finds too few examples to measure.
+  - Loose: Lowering thresholds inflates sample 10x but the additional
+    "loose" candidates are noise — normal pullbacks after breakouts that
+    look like failures geometrically but aren't trend-ending. PF crashes
+    to 0.56 OOS.
+
+Same lesson as ii: Brooks's "final flag" qualitative judgment relies on
+context (how many flags already happened, broader exhaustion, market
+state) that a single-pattern detector cannot replicate. "Final" is a
+retrospective label; we cannot identify which flag is "the last one"
+purely from geometry of the flag itself.
+
+**Rejected.** Confirms the structural prediction made when ii was
+rejected: setups that depend on qualitative context (vs single
+extreme-moment events) cannot be mechanized within the current
+single-feature detector framework.
 
 ## Aggregate impact landed in this iteration
 
