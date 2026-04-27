@@ -19,6 +19,7 @@ from pa.detectors.failed_breakout import detect_failed_breakout
 from pa.detectors.flag import detect_flag
 from pa.detectors.h2 import detect_h2
 from pa.detectors.l2 import detect_l2
+from pa.detectors.outside_bar import detect_outside_bar
 from pa.detectors.params import (
     climactic_params,
     double_tb_params,
@@ -26,6 +27,7 @@ from pa.detectors.params import (
     flag_params,
     h2_params,
     l2_params,
+    outside_bar_params,
     wedge_params,
 )
 from pa.detectors.wedge import detect_wedge
@@ -43,6 +45,7 @@ DETECTOR_REGISTRY = {
     "double_top_bottom": (detect_double_top_bottom, double_tb_params),
     "wedge": (detect_wedge, wedge_params),
     "climactic": (detect_climactic, climactic_params),
+    "outside_bar": (detect_outside_bar, outside_bar_params),
 }
 
 

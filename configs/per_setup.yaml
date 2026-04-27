@@ -12,7 +12,7 @@ data:
   timespan: day
   timespan_multiplier: 1
 detectors:
-  enabled: [h2, l2, flag, failed_breakout, wedge, climactic]
+  enabled: [h2, l2, flag, failed_breakout, wedge, climactic, outside_bar]
   param_tiers: [strict, standard, loose]
 backtest:
   # Default strategy = baseline (used by H2 and L2 — walk-forward showed they
@@ -48,6 +48,15 @@ backtest:
     # showed PF 1.23 OOS at standard, +12R OOS contribution. Use scale_trail
     # to ride the recovery (climactic bottoms tend to mark v-shaped reversals).
     climactic:
+      use_fixed_target: false
+      scale_at_1r: true
+      trailing_atr_mult: 3.0
+      time_stop_bars: 60
+    # Outside Bar (long-only, bull OB at bottom) — strongest new setup so far.
+    # Walk-forward STANDARD OOS PF 1.65 / +47.6R; LOOSE OOS PF 1.83 / +117R.
+    # All tiers and strategies positive in IS+OOS. Use scale_trail to capture
+    # the V-recovery that follows a bull engulfing at new lows.
+    outside_bar:
       use_fixed_target: false
       scale_at_1r: true
       trailing_atr_mult: 3.0

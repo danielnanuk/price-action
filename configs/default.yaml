@@ -16,7 +16,7 @@ detectors:
   # current 5y daily — no edge yet, awaits longer history with multiple
   # bear cycles). Wedge enabled — long-only (bottom wedge in bear regime)
   # was OOS-validated at PF 1.04-1.13 across all tiers.
-  enabled: [h2, l2, flag, failed_breakout, wedge, climactic]
+  enabled: [h2, l2, flag, failed_breakout, wedge, climactic, outside_bar]
   param_tiers: [strict, standard, loose]
 backtest:
   time_stop_bars: 20

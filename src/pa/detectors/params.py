@@ -247,3 +247,39 @@ CLIMACTIC_THRESHOLDS: dict[ParamTier, dict[str, float]] = {
 
 def climactic_params(tier: ParamTier) -> SetupParams:
     return SetupParams(tier=tier, thresholds=dict(CLIMACTIC_THRESHOLDS[tier]))
+
+
+OUTSIDE_BAR_THRESHOLDS: dict[ParamTier, dict[str, float]] = {
+    # Bull outside bar at bottom (long-only, bear regime).
+    ParamTier.STRICT: {
+        "new_low_lookback": 30,
+        "min_range_atr": 1.5,
+        "min_close_pos": 0.8,
+        "min_signal_score": 0.6,
+        "regime_strength_min": 0.6,
+        "stop_atr_buffer": 0.5,
+        "target_r_multiple": 2.0,
+    },
+    ParamTier.STANDARD: {
+        "new_low_lookback": 20,
+        "min_range_atr": 1.2,
+        "min_close_pos": 0.7,
+        "min_signal_score": 0.4,
+        "regime_strength_min": 0.4,
+        "stop_atr_buffer": 0.5,
+        "target_r_multiple": 2.0,
+    },
+    ParamTier.LOOSE: {
+        "new_low_lookback": 15,
+        "min_range_atr": 1.0,
+        "min_close_pos": 0.6,
+        "min_signal_score": 0.3,
+        "regime_strength_min": 0.2,
+        "stop_atr_buffer": 0.5,
+        "target_r_multiple": 2.0,
+    },
+}
+
+
+def outside_bar_params(tier: ParamTier) -> SetupParams:
+    return SetupParams(tier=tier, thresholds=dict(OUTSIDE_BAR_THRESHOLDS[tier]))
